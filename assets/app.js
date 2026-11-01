@@ -8,9 +8,11 @@ const FEATURED = [
   "notre-dame-de-paris", "pantheon", "colosseum", "hagia-sophia", "taj-mahal", "tower-bridge",
   "st-pauls-cathedral", "eiffel-tower", "the-great-sphinx", "great-pyramid-of-giza",
   "machu-picchu", "chichen-itza", "himeji-castle", "forbidden-city", "stonehenge", "alhambra",
-  "angkor-wat", "parthenon", "westminster-abbey", "st-peters-basilica", "sainte-chapelle",
-  "palace-of-westminster", "big-ben", "brandenburg-gate", "independence-hall",
-];
+  "angkor-wat", "parthenon", "westminster-abbey", "sainte-chapelle", "palace-of-westminster",
+  "big-ben", "brandenburg-gate", "independence-hall", "kremlin", "sistine-chapel",
+  "great-wall-of-china", "louvre-museum", "arc-de-triomphe", "golden-gate-bridge",
+  "statue-of-liberty", "empire-state-building", "washington-monument", "florence",
+]
 const PAGE = 48;
 
 /* ---------- helpers ---------------------------------------------------- */
@@ -18,6 +20,16 @@ const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const fmt = (n) => Number(n).toLocaleString("en-US");
 const thumb = (id) => `img/thumb/${encodeURIComponent(id)}.webp`;
 const full = (id) => `img/full/${encodeURIComponent(id)}.webp`;
+/* The viewer shows full-resolution originals when site.json names a server for them
+   (the project's NAS); if that server cannot be reached it falls back to the web copy. */
+function big(im, useOriginal = true) {
+  const web = full(im.id);
+  if (!useOriginal || !S.originals || !im.o) return `src="${web}"`;
+  return `src="${esc(S.originals + encodeURIComponent(im.o))}" onerror="this.onerror=null;this.src='${web}'"`;
+}
+function originalLink(im) {
+  return S.originals && im.o ? ` ${link(S.originals + encodeURIComponent(im.o), "Full-resolution file")}.` : "";
+}
 const norm = (s) => String(s || "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const plural = (n, one, many) => `${fmt(n)} ${n === 1 ? one : many}`;
 function link(url, text) {
@@ -46,6 +58,11 @@ function params() {
 
 /* ---------- data ------------------------------------------------------- */
 async function load() {
+  try {
+    const conf = await getJSON("site.json");
+    const base = (conf.originals_base || "").trim();
+    S.originals = base ? (base.endsWith("/") ? base : base + "/") : "";
+  } catch { S.originals = ""; }
   const idx = await getJSON("data/index.json");
   S.index = idx;
   idx.places.forEach((p) => { S.places[p.id] = p; S.bySite[p.id] = []; });
@@ -148,10 +165,10 @@ function initCompare(root) {
   range.addEventListener("input", () => set(range.value));
   set(range.value);
 }
-function compareMarkup(realImg, gameImg, realLabel, gameLabel, extraClass = "") {
+function compareMarkup(realImg, gameImg, realLabel, gameLabel, extraClass = "", useOriginal = true) {
   return `<div class="compare ${extraClass}" style="--cut:50%">
-    <img src="${full(realImg.id)}" alt="Photograph: ${esc(realLabel)}" width="${realImg.w}" height="${realImg.h}">
-    <img class="over" src="${full(gameImg.id)}" alt="In the game: ${esc(gameLabel)}" width="${gameImg.w}" height="${gameImg.h}">
+    <img ${big(realImg, useOriginal)} alt="Photograph: ${esc(realLabel)}" width="${realImg.w}" height="${realImg.h}">
+    <img class="over" ${big(gameImg, useOriginal)} alt="In the game: ${esc(gameLabel)}" width="${gameImg.w}" height="${gameImg.h}">
     <input type="range" min="0" max="100" value="50" aria-label="Move the divide between the photograph and the game image">
     <span class="seam" aria-hidden="true"></span>
     <span class="corner left tag-real">Real world</span>
@@ -213,7 +230,7 @@ async function renderHero(id, pool) {
   const g = S.games[dep.game];
   const real = place.real[0], gimg = dep.images[0];
   if (!real || !gimg) { box.innerHTML = ""; return; }
-  box.innerHTML = `${compareMarkup(real, gimg, place.name, g?.title || "", "intro")}
+  box.innerHTML = `${compareMarkup(real, gimg, place.name, g?.title || "", "intro", false)}
     <div class="hero-caption">
       <div>
         <h1>${esc(place.name)}</h1>
@@ -393,14 +410,14 @@ async function placePage(id) {
     const gc = creditGame(gimg, g);
     if (!real) {
       cmp.innerHTML = `<div class="side"><figure><div class="frame"><span class="muted">No photograph of this place yet.</span></div></figure>
-        <figure><div class="frame"><img src="${full(gimg.id)}" alt="${esc(dep.name)} in ${esc(g.title || "")}"></div><span class="corner right tag-game">${esc(g.title || "")}</span><figcaption>${gc}</figcaption></figure></div>`;
+        <figure><div class="frame"><img ${big(gimg)} alt="${esc(dep.name)} in ${esc(g.title || "")}"></div><span class="corner right tag-game">${esc(g.title || "")}</span><figcaption>${gc}</figcaption></figure></div>`;
     } else if (st.mode === "overlay") {
       cmp.innerHTML = `${compareMarkup(real, gimg, p.name, g.title || "")}<div class="credits"><p class="credit">Left: ${rc}</p><p class="credit">Right: ${gc}</p></div>`;
       initCompare(cmp.querySelector(".compare"));
     } else {
       cmp.innerHTML = `<div class="side">
-        <figure><div class="frame"><img src="${full(real.id)}" alt="Photograph of ${esc(p.name)}" width="${real.w}" height="${real.h}"></div><span class="corner left tag-real">Real world</span><figcaption>${rc}</figcaption></figure>
-        <figure><div class="frame"><img src="${full(gimg.id)}" alt="${esc(dep.name)} in ${esc(g.title || "")}" width="${gimg.w}" height="${gimg.h}"></div><span class="corner right tag-game">${esc(g.title || "")}</span><figcaption>${gc}</figcaption></figure>
+        <figure><div class="frame"><img ${big(real)} alt="Photograph of ${esc(p.name)}" width="${real.w}" height="${real.h}"></div><span class="corner left tag-real">Real world</span><figcaption>${rc}</figcaption></figure>
+        <figure><div class="frame"><img ${big(gimg)} alt="${esc(dep.name)} in ${esc(g.title || "")}" width="${gimg.w}" height="${gimg.h}"></div><span class="corner right tag-game">${esc(g.title || "")}</span><figcaption>${gc}</figcaption></figure>
       </div>`;
     }
     const gt = document.getElementById("gametext");
@@ -434,11 +451,11 @@ async function placePage(id) {
 function creditReal(r) {
   const c = r.credit;
   const lic = c.license_url ? link(c.license_url, c.license) : esc(c.license);
-  return `Photograph: ${esc(c.text)}, ${lic}${c.source ? `, ${link(c.source, c.via)}` : `, ${esc(c.via)}`}.`;
+  return `Photograph: ${esc(c.text)}, ${lic}${c.source ? `, ${link(c.source, c.via)}` : `, ${esc(c.via)}`}.${originalLink(r)}`;
 }
 function creditGame(im, g) {
   const c = im.credit;
-  return `${esc(c.text)} ${c.source ? `Source: ${link(c.source, c.via)}.` : ""}`;
+  return `${esc(c.text)} ${c.source ? `Source: ${link(c.source, c.via)}.` : ""}${originalLink(im)}`;
 }
 
 /* ---------- about and methods ------------------------------------------ */
