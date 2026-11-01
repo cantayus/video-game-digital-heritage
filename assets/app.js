@@ -2,6 +2,7 @@
    versions in video games. Data: data/index.json and data/places/<id>.json. */
 "use strict";
 
+const PACKAGE_URL = "https://github.com/cantayus/gameheritage";
 const S = { index: null, places: {}, games: {}, bySite: {}, byGame: {}, cache: {} };
 const main = document.getElementById("main");
 const FEATURED = [
@@ -481,9 +482,11 @@ function aboutPage() {
         <p>Photographs keep the licences their authors chose, shown under each image. Game images are copyrighted by the games’ publishers; they are reproduced at reduced size for research, teaching and commentary, credited to the game and linked to the page they come from. Rights holders who would like an image removed can contact the authors.</p>
         <h2>Limitations</h2>
         <p>Automatic matching makes mistakes, especially for places that share a name. Some places have no photograph or no description yet, and dates on Wikidata vary in precision. The collection is a work in progress and is updated as the review continues.</p>
+        <h2 id="data">Data for researchers</h2>
+        <p>The whole catalogue is available as the Python package ${link(PACKAGE_URL, "gameheritage")}: every place, game, in-game version and image, with dates and periods, sources, licences and credit lines. It can search and filter the catalogue, show a game image beside the real photograph, and download images with an attribution file. Install it with <code>pip install "git+${PACKAGE_URL}"</code>. The tables are plain CSV files that any statistics software can read, and each release has a fixed version number for citation.</p>
         <h2>How to cite</h2>
         <p class="cite">Caliskan, C., &amp; Aleksandraviciute, M. (2026). <i>Digital Heritage in Video Games</i> (Version ${esc(idx.version)}) [Data set and website]. University of Rochester. ${esc(url)}</p>
-        <p>Data current as of ${esc(idx.built)}. The data tables and the software that builds this site are open source.</p>
+        <p>Data current as of ${esc(idx.built)}. The data and the software that builds this site are open source: ${link(PACKAGE_URL, "github.com/cantayus/gameheritage")}.</p>
       </div>
       <aside class="bio">
         <h2>The authors</h2>
